@@ -20,12 +20,51 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const spotsLeft = details.max_participants - details.participants.length;
 
+        const participantsList = details.participants.length > 0
+          ? details.participants.map(p => `<li data-email="${p}"><span>${p}</span><button class="delete-btn" title="Unregister ${p}">✕</button></li>`).join('')
+          : '<li style="color: #999; font-style: italic;">No participants yet</li>';
+
         activityCard.innerHTML = `
           <h4>${name}</h4>
           <p>${details.description}</p>
           <p><strong>Schedule:</strong> ${details.schedule}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          <div class="participants-section">
+            <strong>Participants:</strong>
+            <ul class="participants-list">
+              ${participantsList}
+            </ul>
+          </div>
         `;
+
+        // Add delete button handlers
+        activityCard.querySelectorAll('.delete-btn').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const email = btn.closest('li').getAttribute('data-email');
+            const confirmed = confirm(`Are you sure you want to unregister ${email}?`);
+            
+            if (!confirmed) return;
+
+            try {
+              const response = await fetch(
+                `/activities/${encodeURIComponent(name)}/unregister?email=${encodeURIComponent(email)}`,
+                { method: 'DELETE' }
+              );
+
+              if (response.ok) {
+                // Refresh the activities list
+                fetchActivities();
+              } else {
+                const error = await response.json();
+                alert(`Error: ${error.detail || 'Failed to unregister'}`);
+              }
+            } catch (error) {
+              alert('Failed to unregister. Please try again.');
+              console.error('Error unregistering:', error);
+            }
+          });
+        });
 
         activitiesList.appendChild(activityCard);
 
